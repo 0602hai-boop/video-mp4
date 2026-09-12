@@ -1,76 +1,280 @@
 <!doctype html>
 <html lang="ja">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#08132f"><link rel="manifest" href="manifest.webmanifest">
-<title>Video MP4 v8.2</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#08132f">
+<link rel="manifest" href="manifest.webmanifest">
+<title>Video MP4 v8.3</title>
 <style>
-body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",sans-serif;background:#eef4fd;color:#0b234d}
-header{background:#07132f;padding:28px 4%;display:flex;gap:12px;position:sticky;top:0}
-input{flex:1;font-size:20px;padding:18px;border:0;border-radius:18px}button,a.btn{border:0;border-radius:18px;padding:17px 22px;font-weight:800;font-size:18px;text-decoration:none;display:inline-block}
-.primary{background:#315cc8;color:white}.soft{background:#e9eef7;color:#0b234d}
-main{padding:28px 4%;max-width:900px;margin:auto}.notice,.card{background:white;border-radius:24px;padding:24px;margin-bottom:20px}
-.notice{background:#fff1dd;color:#8b351c}.item{border-top:1px solid #ccd7e8;padding:24px 0}.meta{color:#687b9c;font-weight:700;margin:8px 0 16px}.status{margin-top:12px;color:#687b9c;font-weight:700}
-h1{font-size:25px;margin:0}.actions{display:flex;gap:10px;flex-wrap:wrap}
-</style></head>
+body{
+  margin:0;
+  font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",sans-serif;
+  background:#eef4fd;
+  color:#0b234d
+}
+header{
+  background:#07132f;
+  padding:18px 4%;
+  display:flex;
+  gap:10px;
+  position:sticky;
+  top:0;
+  z-index:5
+}
+input{
+  flex:1;
+  min-width:0;
+  font-size:19px;
+  padding:15px 16px;
+  border:0;
+  border-radius:16px
+}
+button,a.btn{
+  border:0;
+  border-radius:16px;
+  padding:13px 16px;
+  font-weight:800;
+  font-size:16px;
+  text-decoration:none;
+  display:inline-block
+}
+.primary{background:#315cc8;color:white}
+.soft{background:#e9eef7;color:#0b234d}
+main{
+  padding:18px 3%;
+  max-width:900px;
+  margin:auto
+}
+.notice,.card{
+  background:white;
+  border-radius:20px;
+  padding:18px;
+  margin-bottom:16px
+}
+.notice{background:#fff1dd;color:#8b351c}
+.item{
+  border-top:1px solid #ccd7e8;
+  padding:18px 0
+}
+.resultrow{
+  display:grid;
+  grid-template-columns:140px minmax(0,1fr);
+  gap:14px;
+  align-items:start
+}
+.thumb{
+  width:140px;
+  height:92px;
+  object-fit:cover;
+  border-radius:14px;
+  background:#dfe7f3
+}
+.meta{
+  color:#687b9c;
+  font-weight:700;
+  margin:6px 0 10px;
+  font-size:15px
+}
+.status{
+  margin-top:10px;
+  color:#687b9c;
+  font-weight:700;
+  font-size:15px
+}
+h1{
+  font-size:20px;
+  line-height:1.25;
+  margin:0
+}
+.actions{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap
+}
+@media(max-width:520px){
+  .resultrow{grid-template-columns:112px minmax(0,1fr);gap:10px}
+  .thumb{width:112px;height:76px}
+  button,a.btn{padding:12px 14px;font-size:15px}
+  h1{font-size:18px}
+  .meta,.status{font-size:14px}
+}
+</style>
+</head>
 <body>
-<header><input id="q" placeholder="動画を検索…"><button class="primary" onclick="search()">検索</button></header>
+<header>
+  <input id="q" placeholder="動画を検索…">
+  <button class="primary" onclick="search()">検索</button>
+</header>
+
 <main>
-<div class="notice"><b>Video MP4 v8.2</b><br>検索と同時にMP4版を自動確認し、見つかった動画には「MP4として保存」を表示します。</div>
-<div class="card"><h1>Wikimedia Commons動画検索</h1><div id="msg" class="status">検索語を入力してください。</div><div id="results"></div></div>
-<p class="status">DRM解除・アクセス制限回避・提供元が禁止するダウンロードには対応しません。保存前にライセンス条件を確認してください。</p>
+  <div class="notice">
+    <b>Video MP4 v8.3</b><br>
+    サムネイルを小さくし、1画面により多くの検索結果を表示します。
+  </div>
+
+  <div class="card">
+    <h1>Wikimedia Commons動画検索</h1>
+    <div id="msg" class="status">検索語を入力してください。</div>
+    <div id="results"></div>
+  </div>
+
+  <p class="status">
+    DRM解除・アクセス制限回避・提供元が禁止するダウンロードには対応しません。
+    保存前にライセンス条件を確認してください。
+  </p>
 </main>
+
 <script>
 const api="https://commons.wikimedia.org/w/api.php?origin=*&format=json";
-function esc(s){return String(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+
+function esc(s){
+  return String(s||"").replace(/[&<>"']/g,c=>({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  }[c]))
+}
+
 async function search(){
- let q=document.getElementById("q").value.trim(); if(!q)return;
- msg.textContent="検索中…"; results.innerHTML="";
- try{
-  let u=api+"&action=query&generator=search&gsrnamespace=6&gsrsearch="+encodeURIComponent(q+" filetype:video")+"&gsrlimit=20&prop=imageinfo&iiprop=url|mime|size|extmetadata";
-  let j=await (await fetch(u)).json(), pages=Object.values(j.query?.pages||{});
-  msg.textContent=pages.length+"件見つかりました。";
-  for(const p of pages) render(p);
- }catch(e){msg.textContent="通信エラーです。時間をおいて再検索してください。"}
-}
-async async function render(p){
- let i=p.imageinfo?.[0]||{}, d=document.createElement("div"); d.className="item";
- let license=i.extmetadata?.LicenseShortName?.value||"要確認";
- d.innerHTML=`<h1>${esc(p.title.replace(/^File:/,""))}</h1><div class="meta">${esc(i.mime)} ・ ${((i.size||0)/1048576).toFixed(1)} MB ・ ライセンス: ${esc(license)}</div>
- <div class="actions"><a class="btn soft" target="_blank" href="https://commons.wikimedia.org/wiki/${encodeURIComponent(p.title)}">詳細・ライセンス</a><button class="primary">MP4を探す</button></div><div class="status"></div>`;
- d.querySelector("button").onclick=()=>findMp4(p.title,d);
- results.appendChild(d);
- // v8.2: MP4 availability is checked automatically as each result appears.
- await findMp4(p.title,d);
-}
-async function findMp4(title,d){
- let s=d.querySelector(".status"); s.textContent="MP4版を確認中…";
- try{
-  let u=api+"&action=query&titles="+encodeURIComponent(title)+"&prop=videoinfo&viprop=derivatives";
-  let j=await (await fetch(u)).json(), p=Object.values(j.query?.pages||{})[0], a=p?.videoinfo?.[0]?.derivatives||[];
-  let m=a.filter(x=>(x.type||"").includes("mp4") || /\.mp4(?:\?|$)/i.test(x.src||"")).sort((x,y)=>(y.width||0)-(x.width||0))[0];
-  if(!m){s.textContent="MP4派生版は見つかりませんでした。";return}
-  s.innerHTML=`MP4版が見つかりました（${m.width||"?"}×${m.height||"?"}）。 <button class="primary">MP4として保存</button>`;
-  s.querySelector("button").onclick=()=>saveMp4(m.src,title);
- }catch(e){s.textContent="MP4確認中に通信エラーが発生しました。"}
-}
-async function saveMp4(url,title){
- // Fetch as a Blob so iOS receives a real .mp4 filename rather than Wikimedia's
- // mpeg4.mov-style URL name. Web Share is preferred; download is fallback.
- let base=title.replace(/^File:/,"").replace(/\.[^.]+$/,"").replace(/[\\/:*?"<>|]+/g,"_");
- let name=(base||"video")+".mp4";
- try{
-  let r=await fetch(url); if(!r.ok)throw 0;
-  let blob=await r.blob(), file=new File([blob],name,{type:"video/mp4"});
-  if(navigator.canShare && navigator.canShare({files:[file]})){
-    await navigator.share({files:[file],title:name}); return;
+  const q=document.getElementById("q").value.trim();
+  if(!q)return;
+
+  msg.textContent="検索中…";
+  results.innerHTML="";
+
+  try{
+    const u=api
+      +"&action=query"
+      +"&generator=search"
+      +"&gsrnamespace=6"
+      +"&gsrsearch="+encodeURIComponent(q+" filetype:video")
+      +"&gsrlimit=20"
+      +"&prop=imageinfo"
+      +"&iiprop=url|mime|size|extmetadata"
+      +"&iiurlwidth=320";
+
+    const j=await (await fetch(u)).json();
+    const pages=Object.values(j.query?.pages||{});
+
+    msg.textContent=pages.length+"件見つかりました。";
+
+    for(const p of pages){
+      render(p);
+    }
+  }catch(e){
+    msg.textContent="通信エラーです。時間をおいて再検索してください。";
   }
-  let a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=name;
-  document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),30000);
- }catch(e){
-  // If iOS/network refuses blob transfer, open the MP4 directly as a safe fallback.
-  window.open(url,"_blank");
- }
 }
-document.getElementById("q").addEventListener("keydown",e=>{if(e.key==="Enter")search()});
-</script></body></html>
+
+function render(p){
+  const i=p.imageinfo?.[0]||{};
+  const d=document.createElement("div");
+  d.className="item";
+
+  const license=i.extmetadata?.LicenseShortName?.value||"要確認";
+  const thumb=i.thumburl||"";
+
+  d.innerHTML=`
+    <div class="resultrow">
+      ${thumb
+        ? `<img class="thumb" src="${esc(thumb)}" alt="動画サムネイル" loading="lazy">`
+        : `<div class="thumb"></div>`
+      }
+      <div>
+        <h1>${esc(p.title.replace(/^File:/,""))}</h1>
+        <div class="meta">
+          ${esc(i.mime)} ・ ${((i.size||0)/1048576).toFixed(1)} MB ・ ライセンス: ${esc(license)}
+        </div>
+
+        <div class="actions">
+          <a class="btn soft" target="_blank"
+             href="https://commons.wikimedia.org/wiki/${encodeURIComponent(p.title)}">
+             詳細・ライセンス
+          </a>
+          <button class="primary mp4btn">MP4を探す</button>
+        </div>
+
+        <div class="status"></div>
+      </div>
+    </div>
+  `;
+
+  d.querySelector(".mp4btn").onclick=()=>findMp4(p.title,d);
+  results.appendChild(d);
+}
+
+async function findMp4(title,d){
+  const s=d.querySelector(".status");
+  s.textContent="MP4版を確認中…";
+
+  try{
+    const u=api
+      +"&action=query"
+      +"&titles="+encodeURIComponent(title)
+      +"&prop=videoinfo"
+      +"&viprop=derivatives";
+
+    const j=await (await fetch(u)).json();
+    const p=Object.values(j.query?.pages||{})[0];
+    const a=p?.videoinfo?.[0]?.derivatives||[];
+
+    const m=a
+      .filter(x=>(x.type||"").includes("mp4") || /\.mp4(?:\?|$)/i.test(x.src||""))
+      .sort((x,y)=>(y.width||0)-(x.width||0))[0];
+
+    if(!m){
+      s.textContent="MP4派生版は見つかりませんでした。";
+      return;
+    }
+
+    s.innerHTML=`
+      MP4版あり（${m.width||"?"}×${m.height||"?"}）
+      <button class="primary savebtn">MP4として保存</button>
+    `;
+
+    s.querySelector(".savebtn").onclick=()=>saveMp4(m.src,title);
+
+  }catch(e){
+    s.textContent="MP4確認中に通信エラーが発生しました。";
+  }
+}
+
+async function saveMp4(url,title){
+  const base=title
+    .replace(/^File:/,"")
+    .replace(/\.[^.]+$/,"")
+    .replace(/[\\/:*?"<>|]+/g,"_");
+
+  const name=(base||"video")+".mp4";
+
+  try{
+    const r=await fetch(url);
+    if(!r.ok)throw 0;
+
+    const blob=await r.blob();
+    const file=new File([blob],name,{type:"video/mp4"});
+
+    if(navigator.canShare && navigator.canShare({files:[file]})){
+      await navigator.share({files:[file],title:name});
+      return;
+    }
+
+    const a=document.createElement("a");
+    a.href=URL.createObjectURL(blob);
+    a.download=name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    setTimeout(()=>URL.revokeObjectURL(a.href),30000);
+
+  }catch(e){
+    window.open(url,"_blank");
+  }
+}
+
+document.getElementById("q").addEventListener("keydown",e=>{
+  if(e.key==="Enter")search();
+});
+</script>
+</body>
+</html>
