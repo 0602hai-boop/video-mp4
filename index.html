@@ -3,20 +3,22 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#08132f"><link rel="manifest" href="manifest.webmanifest">
-<title>Video MP4 v8.1</title>
+<title>Video MP4 v8.2</title>
 <style>
 body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",sans-serif;background:#eef4fd;color:#0b234d}
-header{background:#07132f;padding:28px 4%;display:flex;gap:12px;position:sticky;top:0}
-input{flex:1;font-size:20px;padding:18px;border:0;border-radius:18px}button,a.btn{border:0;border-radius:18px;padding:17px 22px;font-weight:800;font-size:18px;text-decoration:none;display:inline-block}
+header{background:#07132f;padding:28px 4%;display:flex;gap:12px;position:sticky;top:0;z-index:2}
+input{flex:1;font-size:20px;padding:18px;border:0;border-radius:18px}
+button,a.btn{border:0;border-radius:18px;padding:17px 22px;font-weight:800;font-size:18px;text-decoration:none;display:inline-block}
 .primary{background:#315cc8;color:white}.soft{background:#e9eef7;color:#0b234d}
 main{padding:28px 4%;max-width:900px;margin:auto}.notice,.card{background:white;border-radius:24px;padding:24px;margin-bottom:20px}
 .notice{background:#fff1dd;color:#8b351c}.item{border-top:1px solid #ccd7e8;padding:24px 0}.meta{color:#687b9c;font-weight:700;margin:8px 0 16px}.status{margin-top:12px;color:#687b9c;font-weight:700}
 h1{font-size:25px;margin:0}.actions{display:flex;gap:10px;flex-wrap:wrap}
+.thumb{width:100%;max-width:480px;border-radius:18px;display:block;margin:14px 0 16px;background:#dfe7f3;object-fit:cover}
 </style></head>
 <body>
 <header><input id="q" placeholder="動画を検索…"><button class="primary" onclick="search()">検索</button></header>
 <main>
-<div class="notice"><b>Video MP4 v8.1</b><br>Wikimedia Commonsの動画を検索し、MP4派生版がある場合は「MP4として保存」を表示します。</div>
+<div class="notice"><b>Video MP4 v8.2</b><br>検索結果に動画サムネイルを表示します。MP4派生版がある場合は「MP4として保存」を表示します。</div>
 <div class="card"><h1>Wikimedia Commons動画検索</h1><div id="msg" class="status">検索語を入力してください。</div><div id="results"></div></div>
 <p class="status">DRM解除・アクセス制限回避・提供元が禁止するダウンロードには対応しません。保存前にライセンス条件を確認してください。</p>
 </main>
@@ -27,16 +29,17 @@ async function search(){
  let q=document.getElementById("q").value.trim(); if(!q)return;
  msg.textContent="検索中…"; results.innerHTML="";
  try{
-  let u=api+"&action=query&generator=search&gsrnamespace=6&gsrsearch="+encodeURIComponent(q+" filetype:video")+"&gsrlimit=20&prop=imageinfo&iiprop=url|mime|size|extmetadata";
+  let u=api+"&action=query&generator=search&gsrnamespace=6&gsrsearch="+encodeURIComponent(q+" filetype:video")+"&gsrlimit=20&prop=imageinfo&iiprop=url|mime|size|extmetadata&iiurlwidth=480";
   let j=await (await fetch(u)).json(), pages=Object.values(j.query?.pages||{});
   msg.textContent=pages.length+"件見つかりました。";
   for(const p of pages) render(p);
  }catch(e){msg.textContent="通信エラーです。時間をおいて再検索してください。"}
 }
-async function render(p){
+function render(p){
  let i=p.imageinfo?.[0]||{}, d=document.createElement("div"); d.className="item";
  let license=i.extmetadata?.LicenseShortName?.value||"要確認";
- d.innerHTML=`<h1>${esc(p.title.replace(/^File:/,""))}</h1><div class="meta">${esc(i.mime)} ・ ${((i.size||0)/1048576).toFixed(1)} MB ・ ライセンス: ${esc(license)}</div>
+ let thumb=i.thumburl||"";
+ d.innerHTML=`<h1>${esc(p.title.replace(/^File:/,""))}</h1>${thumb?`<img class="thumb" src="${esc(thumb)}" alt="動画サムネイル" loading="lazy">`:""}<div class="meta">${esc(i.mime)} ・ ${((i.size||0)/1048576).toFixed(1)} MB ・ ライセンス: ${esc(license)}</div>
  <div class="actions"><a class="btn soft" target="_blank" href="https://commons.wikimedia.org/wiki/${encodeURIComponent(p.title)}">詳細・ライセンス</a><button class="primary">MP4を探す</button></div><div class="status"></div>`;
  d.querySelector("button").onclick=()=>findMp4(p.title,d);
  results.appendChild(d);
@@ -53,8 +56,6 @@ async function findMp4(title,d){
  }catch(e){s.textContent="MP4確認中に通信エラーが発生しました。"}
 }
 async function saveMp4(url,title){
- // Fetch as a Blob so iOS receives a real .mp4 filename rather than Wikimedia's
- // mpeg4.mov-style URL name. Web Share is preferred; download is fallback.
  let base=title.replace(/^File:/,"").replace(/\.[^.]+$/,"").replace(/[\\/:*?"<>|]+/g,"_");
  let name=(base||"video")+".mp4";
  try{
@@ -65,10 +66,7 @@ async function saveMp4(url,title){
   }
   let a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=name;
   document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),30000);
- }catch(e){
-  // If iOS/network refuses blob transfer, open the MP4 directly as a safe fallback.
-  window.open(url,"_blank");
- }
+ }catch(e){ window.open(url,"_blank"); }
 }
 document.getElementById("q").addEventListener("keydown",e=>{if(e.key==="Enter")search()});
 </script></body></html>
