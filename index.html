@@ -4,7 +4,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#071536">
 <link rel="manifest" href="manifest.webmanifest">
-<title>Video MP4 v7.7</title>
+<title>Video MP4 v7.8</title>
 <style>
 *{box-sizing:border-box}body{margin:0;background:#edf4fd;color:#102347;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-weight:650}
 header{position:sticky;top:0;z-index:3;background:#071536;padding:22px 16px;display:flex;gap:10px}
@@ -19,7 +19,7 @@ main{padding:28px 16px;max-width:820px;margin:auto}.notice,.card{background:whit
 <body>
 <header><input id="q" placeholder="動画を検索…"><button class="primary" id="search">検索</button></header>
 <main>
-<div class="notice"><b>Video MP4 v7.7</b><br>iPhone内の変換エンジンは使いません。Wikimediaが提供するMP4版がある場合は、そのMP4を直接開いて保存します。</div>
+<div class="notice"><b>Video MP4 v7.8</b><br>検索結果のMP4有無を自動確認し、MP4版がある動画を分かりやすく表示します。iPhone内の変換エンジンは使いません。</div>
 <div class="tabs"><button class="primary">Commons検索</button><button class="secondary" id="local">手元の動画</button></div>
 <section class="card">
 <h2>Wikimedia Commons動画検索</h2>
@@ -39,8 +39,15 @@ async function search(){
  try{
   const u='https://commons.wikimedia.org/w/api.php?origin=*&action=query&generator=search&gsrnamespace=6&gsrsearch='+encodeURIComponent(q+' filetype:video')+'&gsrlimit=20&prop=imageinfo&iiprop=url|mime|size|extmetadata&iiurlwidth=640&format=json';
   const j=await fetch(u).then(r=>r.json()); const pages=Object.values(j.query?.pages||{}).filter(p=>p.imageinfo?.[0]);
-  status.textContent=pages.length+'件見つかりました。MP4版があれば「MP4を開く」が表示されます。';
-  for(const p of pages) render(p);
+  status.textContent=pages.length+'件見つかりました。MP4版を自動確認中…';
+  let checked=0, found=0;
+  for(const p of pages){
+    const card=render(p);
+    const ok=await autoCheckMp4(p.title,card);
+    checked++; if(ok) found++;
+    status.textContent='MP4確認中… '+checked+'/'+pages.length+'件　MP4あり: '+found+'件';
+  }
+  status.textContent='確認完了。MP4版あり: '+found+'件 / '+pages.length+'件';
  }catch(e){status.textContent='通信エラーです。時間をおいて再検索してください。'}
 }
 function license(ii){const m=ii.extmetadata||{};return m.LicenseShortName?.value||m.UsageTerms?.value||'要確認'}
@@ -50,7 +57,45 @@ async function render(p){
  d.innerHTML='<h3>'+esc(title)+'</h3><div class="meta">'+esc(ii.mime||'')+' ・ '+mb+' MB ・ ライセンス: '+esc(license(ii).replace(/<[^>]*>/g,''))+'</div><div class="actions"><a class="btn secondary" target="_blank" href="'+esc(ii.descriptionurl)+'">詳細・ライセンス</a><button class="primary mp4">MP4を探す</button><a class="btn secondary" target="_blank" href="'+esc(ii.url)+'">元動画を開く</a></div><div class="small msg"></div>';
  results.appendChild(d);
  d.querySelector('.mp4').onclick=()=>findMp4(p.title,d.querySelector('.msg'),d.querySelector('.mp4'));
+ return d;
 }
+
+async function autoCheckMp4(fileTitle, card){
+  const msg=card.querySelector('.msg'), btn=card.querySelector('.mp4');
+  msg.textContent='MP4版を自動確認中…';
+  btn.disabled=true;
+  try{
+    const api='https://commons.wikimedia.org/w/api.php?origin=*&action=query&titles='+encodeURIComponent(fileTitle)+'&prop=videoinfo&viprop=derivatives&format=json';
+    const j=await fetch(api).then(r=>r.json()), pg=Object.values(j.query?.pages||{})[0];
+    const ds=pg?.videoinfo?.[0]?.derivatives||[];
+    const mp4s=ds.filter(x=>(x.type||'').includes('mp4') || /\.mp4(?:\?|$)/i.test(x.src||''));
+    if(mp4s.length){
+      mp4s.sort((a,b)=>(a.width||0)-(b.width||0));
+      const x=mp4s[mp4s.length-1];
+      card.style.border='2px solid #2c66d5';
+      card.style.borderRadius='18px';
+      card.style.padding='18px';
+      card.style.margin='12px 0';
+      msg.innerHTML='<b>MP4版あり</b>（'+(x.width||'?')+'×'+(x.height||'?')+'） '
+        +'<a class="btn primary" target="_blank" href="'+esc(x.src)+'">MP4を開く</a>';
+      btn.textContent='MP4版あり';
+      btn.disabled=false;
+      btn.onclick=()=>window.open(x.src,'_blank');
+      return true;
+    }else{
+      msg.textContent='MP4版なし';
+      btn.textContent='MP4なし';
+      btn.disabled=true;
+      return false;
+    }
+  }catch(e){
+    msg.textContent='MP4確認エラー';
+    btn.textContent='再確認';
+    btn.disabled=false;
+    return false;
+  }
+}
+
 async function findMp4(fileTitle,msg,btn){
  btn.disabled=true; msg.textContent='WikimediaのMP4派生版を確認中…';
  try{
